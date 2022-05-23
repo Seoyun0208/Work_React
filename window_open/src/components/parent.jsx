@@ -8,7 +8,7 @@ const Parent = (props) => {
 		// window.open("open할 window", "자식창 이름", "팝업창 옵션");
 		window.open(
 			"/child",
-			"profile",
+			"child",
 			"width=400, height=300, left= 1400, top=300 resizable = no, scrollbars=no"
 		);
 	};
