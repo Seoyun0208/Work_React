@@ -1,0 +1,56 @@
+[
+	{
+		"id": "12",
+		"parentId": "0",
+		"text": "Man",
+		"level": "1"
+	},
+	{
+		"id": "6",
+		"parentId": "12",
+		"text": "Boy",
+		"level": "2"
+	},
+	{
+		"id": "7",
+		"parentId": "12",
+		"text": "Other",
+		"level": "2"
+	},
+	{
+		"id": "9",
+		"parentId": "0",
+		"text": "Woman",
+		"level": "1"
+	},
+	{
+		"id": "11",
+		"parentId": "9",
+		"text": "Girl",
+		"level": "2"
+	},
+	{
+		"id": "18",
+		"parentId": "6",
+		"text": "Some",
+		"level": "3"
+	},
+	{
+		"id": "17",
+		"parentId": "6",
+		"text": "Any",
+		"level": "3"
+	},
+	{
+		"id": "8",
+		"parentId": "0",
+		"text": "Good",
+		"level": "1"
+	},
+	{
+		"id": "15",
+		"parentId": "11",
+		"text": "Two",
+		"level": "3"
+	}
+]
