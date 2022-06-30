@@ -1,20 +1,144 @@
 import "./App.css";
 import React, {
-	useCallback,
+	forwardRef,
+	memo,
 	useEffect,
+	useImperativeHandle,
 	useMemo,
 	useRef,
 	useState,
+	useCallback,
 } from "react";
 import { AgGridReact } from "ag-grid-react";
 import "ag-grid-community/dist/styles/ag-grid.css";
 import "ag-grid-community/dist/styles/ag-theme-alpine.css";
 import MyFilter from "./components/Filter";
+import { GridApi } from "ag-grid-community";
+import { ICellRendererParams } from "ag-grid-community";
 
 let yearType = "default";
 
 function App() {
 	const gridRef = useRef();
+
+	// ! edit 할 때 숫자만 입력받는 기능 구현
+	const KEY_BACKSPACE = "Backspace";
+	const KEY_DELETE = "Delete";
+	const KEY_F2 = "F2";
+	const KEY_ENTER = "Enter";
+	const KEY_TAB = "Tab";
+
+	const NumericEditor = memo(
+		forwardRef((props, ref) => {
+			const createInitialState = () => {
+				let startValue;
+
+				if (props.key === KEY_BACKSPACE || props.key === KEY_DELETE) {
+					// if backspace or delete pressed, we clear the cell
+					startValue = "";
+				} else if (props.charPress) {
+					// if a letter was pressed, we start with the letter
+					startValue = props.charPress;
+				} else {
+					// otherwise we start with the current value
+					startValue = props.value;
+					if (props.key === KEY_F2) {
+					}
+				}
+
+				return {
+					value: startValue,
+				};
+			};
+
+			const initialState = createInitialState();
+			const [value, setValue] = useState(initialState.value);
+			const refInput = useRef(null);
+
+			// focus on the input
+			useEffect(() => {
+				// get ref from React component
+				const eInput = refInput.current;
+				eInput.focus();
+
+				// when we started editing, we want the caret at the end, not the start.
+				// this comes into play in two scenarios:
+				//   a) when user hits F2
+				//   b) when user hits a printable character
+				const length = eInput.value ? eInput.value.length : 0;
+				if (length > 0) {
+					eInput.setSelectionRange(length, length);
+				}
+			}, []);
+
+			/* Utility Methods */
+			const isLeftOrRight = (event) => {
+				return ["ArrowLeft", "ArrowLeft"].indexOf(event.key) > -1;
+			};
+
+			const isCharNumeric = (charStr) => {
+				return !!/\d/.test(charStr);
+			};
+
+			const isKeyPressedNumeric = (event) => {
+				const charStr = event.key;
+				return isCharNumeric(charStr);
+			};
+
+			const deleteOrBackspace = (event) => {
+				return [KEY_DELETE, KEY_BACKSPACE].indexOf(event.key) > -1;
+			};
+
+			const finishedEditingPressed = (event) => {
+				const key = event.key;
+				return key === KEY_ENTER || key === KEY_TAB;
+			};
+
+			const onKeyDown = (event) => {
+				if (isLeftOrRight(event) || deleteOrBackspace(event)) {
+					event.stopPropagation();
+					return;
+				}
+
+				if (
+					!finishedEditingPressed(event) &&
+					!isKeyPressedNumeric(event)
+				) {
+					if (event.preventDefault) event.preventDefault();
+				}
+
+				if (finishedEditingPressed(event)) {
+					props.stopEditing();
+				}
+			};
+
+			/* Component Editor Lifecycle methods */
+			useImperativeHandle(ref, () => {
+				return {
+					// the final value to send to the grid, on completion of editing
+					getValue() {
+						return value;
+					},
+				};
+			});
+
+			return (
+				<input
+					ref={refInput}
+					value={value}
+					onChange={(event) => setValue(event.target.value)}
+					onKeyDown={(event) => onKeyDown(event)}
+					style={{
+						width: "50%",
+						outline: "none",
+						border: "none",
+						background: "transparent",
+						textAlign: "center",
+					}}
+				/>
+			);
+		})
+	);
 
 	// ! useState() 를 이용한 행 설정
 	const [rowData, setRowData] = useState([]);
@@ -37,6 +161,7 @@ function App() {
 				title: "My age Filter",
 				values: [20, 30, 40, 50, 60],
 			},
+			cellEditor: NumericEditor,
 		},
 		{
 			field: "country",
@@ -45,6 +170,7 @@ function App() {
 		{
 			field: "year",
 			width: 100,
+			cellEditor: NumericEditor,
 		},
 	]);
 
@@ -55,13 +181,15 @@ function App() {
 			sortable: true,
 			filter: true,
 			suppressMenu: true, // floatMenu 버튼 숨기기
+			editable: true,
+			singleClickEdit: true,
 		}),
 		[]
 	);
 
 	// ! 셀 클릭시 이벤트 설정
 	const cellClickedListener = useCallback((e) => {
-		console.log("cellClicked", e);
+		// console.log("cellClicked", e);
 	});
 
 	// ! useEffect() 를 통해 데이터 가져오기
@@ -121,6 +249,12 @@ function App() {
 		[yearType]
 	);
 
+	// ! 수정 중이던 셀 포커스 잃게 하는 EditStop 버튼 기능 구현
+	const onBtStopEditing = useCallback((event) => {
+		console.log(event);
+		gridRef.current.api.stopEditing();
+	}, []);
+
 	return (
 		<div>
 			<div
@@ -130,6 +264,9 @@ function App() {
 					margin: "50px auto 5px auto",
 				}}
 			>
+				<button style={{ marginRight: 5 }} onClick={onBtStopEditing}>
+					EditStop
+				</button>
 				<button style={{ marginRight: 5 }} onClick={onBtSave}>
 					Save
 				</button>
@@ -189,6 +326,7 @@ function App() {
 					ref={gridRef}
 					isExternalFilterPresent={isExternalFilterPresent}
 					doesExternalFilterPass={doesExternalFilterPass}
+					stopEditingWhenCellsLoseFocus={true}
 				/>
 			</div>
 		</div>
